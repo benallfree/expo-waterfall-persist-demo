@@ -1,34 +1,28 @@
 import React from 'react'
-import { StyleSheet, Text, View, TextInput, Animated } from 'react-native'
-import { createStoreAsync } from 'expo-waterfall-persist'
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Animated,
+  Button
+} from 'react-native'
+import { Provider, actions, connect } from './store'
+import { Greeting } from './Greeting'
 
-const config = {
-  initialState: { version: 4, greeting: 'Hello world!' },
-  actionsCreators: {
-    setGreeting: (state, actions, greeting) => ({ greeting })
-  }
-}
-
-class Greeting extends React.Component {
-  render() {
-    return <Text>{this.props.greeting}</Text>
-  }
-}
+const ShowTick = connect(({ tick }) => ({ tick }))(({ tick }) => (
+  <Text>{tick}</Text>
+))
 
 export default class App extends React.Component {
   state = {
-    isReady: false,
     opacity: 0
   }
-  componentDidMount() {
-    createStoreAsync(config, { onSaved: this.handleStateSaved }).then(
-      ({ Provider, actions, connect, subscribe, unsubscribe }) => {
-        this.actions = actions
-        this.Provider = Provider
-        this.Greeting = connect(({ greeting }) => ({ greeting }))(Greeting)
-        this.setState({ isReady: true })
-      }
-    )
+
+  handleStartTicker = () => {
+    setInterval(() => {
+      actions.tick()
+    }, 50)
   }
 
   handleStateSaved = state => {
@@ -46,14 +40,13 @@ export default class App extends React.Component {
   }
 
   handleChange = text => {
-    this.actions.setGreeting(text)
+    actions.setGreeting(text)
   }
 
   render() {
-    if (!this.state.isReady) return null
     return (
       <View style={styles.container}>
-        <this.Provider>
+        <Provider onSaved={this.handleStateSaved}>
           <Text style={{ fontSize: 20 }}>
             Type a new greeting below. Close the app, open it again. The
             greeting remains.
@@ -80,13 +73,15 @@ export default class App extends React.Component {
               borderWidth: 2
             }}
           >
-            <this.Greeting />
+            <Greeting />
           </View>
           <TextInput
             placeholder="New greeting"
             onChangeText={this.handleChange}
           />
-        </this.Provider>
+          <ShowTick />
+          <Button title="Start Ticker" onPress={this.handleStartTicker} />
+        </Provider>
       </View>
     )
   }
